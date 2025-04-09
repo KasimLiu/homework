@@ -1,0 +1,21 @@
+﻿我想開發一個我想開發一個python 的智慧問答機器人，由使用者輸入由ai模型提供回覆，
+我的後端想要python + flask，前端ui想用 streamlit，
+成品是提供一個web頁面提供交談模式給使用互動使用，
+另外我還額外需要一個可以用CLI介面方式來與ai溝通作為測試之用
+
+我希望全部的功能在一支程式中就可以完成，還有不要用api呼叫的方式去呼叫ai模型，請使用SDK的方法來呼叫ai模型回應
+
+我將採用gemini 來作這個專案的ai模型，並請用 google.generativeai引入SDK來操作相關ai服務，
+
+API key ：AIzaSyAWUeu9oVHuncITLRSwvYdSUn0bey8xAgs
+
+model：gemini-1.5-flash
+
+並需要用.env環境變數檔來儲存相關變數值，包含api key、model等，方便後續調整之用。
+
+請參照以下語法來設定”GOOGLE_API_KEY = userdata.get("GEMINI_API_KEY")
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-1.5-flash")”。
+
+
+
