@@ -13,17 +13,21 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
 # 檢查 API Key 是否存在
 if not GEMINI_API_KEY:
-    raise ValueError("錯誤：找不到 GEMINI_API_KEY 環境變數。請在 .env 檔案中設定。")
+    print("警告：找不到 GEMINI_API_KEY 環境變數。")
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel(GEMINI_MODEL)
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel(GEMINI_MODEL)
+except Exception as e:
+    print(f"警告：初始化 Gemini API 時發生錯誤：{str(e)}")
 
 def get_ai_response(prompt):
     try:
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        return f"錯誤：{str(e)}"
+        print(f"錯誤：生成回應時發生錯誤：{str(e)}")
+        return f"抱歉，處理您的請求時發生錯誤。請稍後再試。"
 
 @app.route('/')
 def home():
@@ -34,14 +38,20 @@ def chat():
     data = request.json
     user_input = data.get('message', '')
     
+    if not user_input:
+        return jsonify({
+            'error': '請輸入問題'
+        }), 400
+    
     try:
         response = get_ai_response(user_input)
         return jsonify({
             'response': response
         })
     except Exception as e:
+        print(f"錯誤：處理聊天請求時發生錯誤：{str(e)}")
         return jsonify({
-            'error': str(e)
+            'error': '處理您的請求時發生錯誤。請稍後再試。'
         }), 500
 
 # 添加靜態文件路由
@@ -60,4 +70,4 @@ def not_found(error):
     return render_template('index.html'), 200
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000))) 
