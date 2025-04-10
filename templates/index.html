@@ -3,28 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 智慧問答機器人</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>AI 聊天助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="chat-container">
-        <h1>AI 智慧問答機器人</h1>
+        <h1>AI 聊天助手</h1>
         <div id="chat-messages"></div>
-        <input type="text" id="chat-input" placeholder="請輸入您的問題">
-        <button id="send-button">發送</button>
+        <div class="input-container">
+            <input type="text" id="chat-input" placeholder="輸入您的問題..." autocomplete="off">
+            <button id="send-button">
+                <span class="button-text">發送</span>
+                <span class="loading" style="display: none;"></span>
+            </button>
+        </div>
     </div>
 
     <script>
         const chatInput = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-button');
         const chatMessages = document.getElementById('chat-messages');
+        const buttonText = document.querySelector('.button-text');
+        const loadingSpinner = document.querySelector('.loading');
 
-        function addMessage(content, isUser = false) {
+        function addMessage(content, isUser) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
-            messageDiv.textContent = content;
+            
+            const time = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <div class="message-content">${content}</div>
+                <div class="message-time">${time}</div>
+            `;
+            
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function setLoading(isLoading) {
+            sendButton.disabled = isLoading;
+            buttonText.style.display = isLoading ? 'none' : 'inline';
+            loadingSpinner.style.display = isLoading ? 'inline-block' : 'none';
         }
 
         async function sendMessage() {
@@ -33,28 +52,33 @@
 
             addMessage(message, true);
             chatInput.value = '';
+            setLoading(true);
 
             try {
-                const response = await fetch('/api/chat', {
+                const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message }),
+                    body: JSON.stringify({ message: message })
                 });
 
-                const data = await response.json();
-                if (data.error) {
-                    addMessage(`錯誤：${data.error}`);
-                } else {
-                    addMessage(data.response);
+                if (!response.ok) {
+                    throw new Error('網路錯誤');
                 }
+
+                const data = await response.json();
+                addMessage(data.response, false);
             } catch (error) {
-                addMessage(`錯誤：${error.message}`);
+                addMessage('抱歉，發生了一些錯誤。請稍後再試。', false);
+                console.error('Error:', error);
+            } finally {
+                setLoading(false);
             }
         }
 
         sendButton.addEventListener('click', sendMessage);
+        
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 sendMessage();
