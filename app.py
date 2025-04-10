@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 import json
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 load_dotenv()
 
 # 設置 Gemini API
@@ -53,6 +53,11 @@ def serve_static(path):
 @app.route('/health')
 def health_check():
     return jsonify({"status": "healthy"})
+
+# 添加 404 處理
+@app.errorhandler(404)
+def not_found(error):
+    return render_template('index.html'), 200
 
 if __name__ == '__main__':
     app.run(debug=True) 
