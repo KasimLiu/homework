@@ -1,23 +1,19 @@
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import os
-import streamlit as st
-import google.generativeai as genai
 from dotenv import load_dotenv
-import argparse
+import google.generativeai as genai
+import json
 
-# 載入環境變數
+app = Flask(__name__)
 load_dotenv()
 
-# 設定 Gemini API
+# 設置 Gemini API
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
 # 檢查 API Key 是否存在
 if not GEMINI_API_KEY:
-    st.error("錯誤：找不到 GEMINI_API_KEY 環境變數。請在 .env 檔案中設定。")
-    exit()
-if not GEMINI_MODEL:
-    st.warning("警告：找不到 GEMINI_MODEL 環境變數。將使用預設模型 'gemini-1.5-flash'。")
-    GEMINI_MODEL = "gemini-1.5-flash" # 提供預設值
+    raise ValueError("錯誤：找不到 GEMINI_API_KEY 環境變數。請在 .env 檔案中設定。")
 
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel(GEMINI_MODEL)
@@ -29,56 +25,34 @@ def get_ai_response(prompt):
     except Exception as e:
         return f"錯誤：{str(e)}"
 
-# Streamlit 介面 (現在是主要函數)
-def main_streamlit():
-    st.title("AI 智慧問答機器人")
-    st.write("歡迎使用 AI 智慧問答系統！")
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-    # 初始化聊天歷史
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # 顯示聊天歷史
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # 使用者輸入
-    if prompt := st.chat_input("請輸入您的問題"):
-        # 添加使用者訊息到歷史
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        # 獲取 AI 回應
-        with st.chat_message("assistant"):
-            response = get_ai_response(prompt)
-            st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
-
-# CLI 介面
-def cli_interface():
-    print("歡迎使用 AI 智慧問答系統 (CLI 模式)")
-    print("輸入 'quit' 或 'exit' 結束對話")
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    data = request.json
+    user_input = data.get('message', '')
     
-    while True:
-        user_input = input("\n請輸入您的問題: ")
-        if user_input.lower() in ['quit', 'exit']:
-            print("感謝使用，再見！")
-            break
-        
+    try:
         response = get_ai_response(user_input)
-        print("\nAI 回應:", response)
+        return jsonify({
+            'response': response
+        })
+    except Exception as e:
+        return jsonify({
+            'error': str(e)
+        }), 500
 
-if __name__ == "__main__":
-    # 使用 argparse 處理命令行參數
-    parser = argparse.ArgumentParser(description="AI 智慧問答機器人")
-    parser.add_argument("--cli", action="store_true", help="以 CLI 模式運行")
-    args = parser.parse_args()
+# 添加靜態文件路由
+@app.route('/static/<path:path>')
+def serve_static(path):
+    return send_from_directory('static', path)
 
-    if args.cli:
-        # CLI 模式
-        cli_interface()
-    else:
-        # Streamlit 模式 (不再從腳本內啟動，由 streamlit run 啟動)
-        main_streamlit() 
+# 添加健康檢查路由
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "healthy"})
+
+if __name__ == '__main__':
+    app.run(debug=True) 
