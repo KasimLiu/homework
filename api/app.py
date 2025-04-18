@@ -19,6 +19,7 @@ HTML_TEMPLATE = """
 <html>
 <head>
     <title>AI聊天機器人</title>
+    <meta charset="UTF-8">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -68,6 +69,11 @@ HTML_TEMPLATE = """
         button:hover {
             background-color: #1976d2;
         }
+        #chat-messages {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -80,11 +86,44 @@ HTML_TEMPLATE = """
             </div>
             {% endfor %}
         </div>
-        <form class="input-container" method="POST">
-            <input type="text" name="message" placeholder="請輸入您的問題" required>
+        <form id="chat-form" class="input-container">
+            <input type="text" id="message-input" name="message" placeholder="請輸入您的問題" required>
             <button type="submit">發送</button>
         </form>
     </div>
+    <script>
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value;
+            
+            // 添加使用者訊息
+            const messagesDiv = document.getElementById('chat-messages');
+            messagesDiv.innerHTML += `<div class="message user-message">${message}</div>`;
+            messageInput.value = '';
+            
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `message=${encodeURIComponent(message)}`
+                });
+                
+                const data = await response.json();
+                
+                // 添加AI回應
+                messagesDiv.innerHTML += `<div class="message ai-message">${data.ai_response}</div>`;
+                
+                // 滾動到最新訊息
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } catch (error) {
+                console.error('Error:', error);
+                messagesDiv.innerHTML += `<div class="message ai-message">抱歉，發生錯誤。請稍後再試。</div>`;
+            }
+        });
+    </script>
 </body>
 </html>
 """
