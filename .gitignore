@@ -2,4 +2,5 @@ prj_task*.txt
 Github*.txt
 __pycache__/
 *.pyc
-.env 
+.env
+.vercel 

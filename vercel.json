@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/app.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/app.py"
+    }
+  ],
+  "env": {
+    "GEMINI_API_KEY": "AIzaSyCWTS7qIG7X4xnnHzPpYyu5Tu3Q0489VzY",
+    "GEMINI_MODEL": "gemini-1.5-flash"
+  }
+} 
