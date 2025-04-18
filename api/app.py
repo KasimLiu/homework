@@ -5,13 +5,17 @@ import argparse
 
 app = Flask(__name__)
 
-# 從環境變數獲取設定
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+# 直接設定API金鑰和模型
+GEMINI_API_KEY = "AIzaSyCWTS7qIG7X4xnnHzPpYyu5Tu3Q0489VzY"
+GEMINI_MODEL = "gemini-1.5-flash"
 
 # 設定API金鑰
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel(GEMINI_MODEL)
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel(GEMINI_MODEL)
+except Exception as e:
+    print(f"初始化 Gemini 模型時發生錯誤: {str(e)}")
+    raise
 
 # HTML模板
 HTML_TEMPLATE = """
@@ -132,9 +136,14 @@ def get_ai_response(prompt):
     """獲取AI回應的通用函數"""
     try:
         response = model.generate_content(prompt)
+        if not response:
+            return "抱歉，AI模型無法生成回應。請稍後再試。"
+        if not hasattr(response, 'text'):
+            return "抱歉，AI回應格式不正確。請稍後再試。"
         return response.text
     except Exception as e:
-        return f"發生錯誤: {str(e)}"
+        print(f"AI回應錯誤: {str(e)}")  # 記錄錯誤
+        return "抱歉，處理您的請求時發生錯誤。請稍後再試。"
 
 def cli_mode():
     """CLI模式"""
