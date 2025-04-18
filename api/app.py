@@ -1,7 +1,9 @@
 import os
-import streamlit as st
+from flask import Flask, request, jsonify, render_template_string
 import google.generativeai as genai
 import argparse
+
+app = Flask(__name__)
 
 # 從環境變數獲取設定
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -10,6 +12,82 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 # 設定API金鑰
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel(GEMINI_MODEL)
+
+# HTML模板
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI聊天機器人</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .chat-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+        .ai-message {
+            background-color: #f5f5f5;
+            margin-right: 20%;
+        }
+        .input-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>AI聊天機器人</h1>
+        <div id="chat-messages">
+            {% for message in messages %}
+            <div class="message {% if message.role == 'user' %}user-message{% else %}ai-message{% endif %}">
+                {{ message.content }}
+            </div>
+            {% endfor %}
+        </div>
+        <form class="input-container" method="POST">
+            <input type="text" name="message" placeholder="請輸入您的問題" required>
+            <button type="submit">發送</button>
+        </form>
+    </div>
+</body>
+</html>
+"""
 
 def get_ai_response(prompt):
     """獲取AI回應的通用函數"""
@@ -33,32 +111,17 @@ def cli_mode():
         response = get_ai_response(user_input)
         print(f"\nAI: {response}")
 
-def web_mode():
-    """Web模式 (Streamlit)"""
-    st.title("AI聊天機器人")
-    st.write("歡迎使用AI聊天機器人！")
-
-    # 初始化聊天歷史
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # 顯示聊天歷史
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # 使用者輸入
-    if prompt := st.chat_input("請輸入您的問題"):
-        # 添加使用者訊息到歷史
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        # 獲取AI回應
-        with st.chat_message("assistant"):
-            response = get_ai_response(prompt)
-            st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+@app.route('/', methods=['GET', 'POST'])
+def chat():
+    if request.method == 'POST':
+        message = request.form.get('message', '')
+        if message:
+            response = get_ai_response(message)
+            return jsonify({
+                'user_message': message,
+                'ai_response': response
+            })
+    return render_template_string(HTML_TEMPLATE, messages=[])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='AI聊天機器人')
@@ -70,4 +133,4 @@ if __name__ == "__main__":
     if args.mode == 'cli':
         cli_mode()
     else:
-        web_mode() 
+        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080))) 
